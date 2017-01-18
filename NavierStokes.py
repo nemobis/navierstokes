@@ -316,6 +316,11 @@ for source in messages:
                         that_message = that_message.replace(htmlcode,"")
                         pass
 
+                    if this_message.isspace():
+                        # This message contained nothing, or nothing but URLs
+                        # Danger, Will Robinson! Bail.
+                        found_match = True
+                        continue
                     
 
                     match_ratio = fuzz.token_set_ratio(this_message, that_message, force_ascii=True)
@@ -372,6 +377,12 @@ for source in messages:
                             that_message = that_message.replace(htmlcode,"")
                             pass
 
+                        if this_message.isspace():
+                            # This message contained nothing, or nothing but URLs
+                            # Danger, Will Robinson! Bail.
+                            found_match = True
+                            continue
+                    
 
                         match_ratio = fuzz.token_set_ratio(this_message, that_message, force_ascii=True)
                         if match_ratio >= best_match_score:
