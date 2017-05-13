@@ -12,11 +12,13 @@ the same instance. It uses PyPump 0.5 to do all of this
 
 from SocialHandler import *
 from pypump import PyPump, Client
-from pypump.models.image import Image
+#from pypump.models.image import Image
+from pypump.models.media import (Video, Audio, Image)
 from pypump.models.collection import Collection
 from pypump.models.collection import Public
 from pypump.models.person import Person
 from pypump.exception import PyPumpException
+from pypump.store import JSONStore
 
 from requests.exceptions import ConnectionError
 
@@ -47,7 +49,8 @@ class PumpHandler(SocialHandler):
 
         try:
             self.pump = self.CreatePumpClient(self.webfinger, self.credentials, self.tokens)
-            self.me   = self.pump.Person(self.webfinger)
+            #self.me   = self.pump.Person(self.webfinger)
+            self.me   = self.pump.me
         except PyPumpException:
             print("Unable to initiate a connection to the pump server. Pump.io will be skipped.")
             self.pump = None
@@ -74,12 +77,14 @@ class PumpHandler(SocialHandler):
             secret=client_credentials[1],
             )
 
-        pump = PyPump(
-            client=client,
-            token=client_tokens[0], # the token
-            secret=client_tokens[1], # the token secret
-            verifier_callback=self.simple_verifier
-            )
+        #    token=client_tokens[0], # the token
+        #    secret=client_tokens[1], # the token secret
+
+        #store = AbstractStore()
+        #store['token']  = client_tokens[0]
+        #store['secret'] = client_tokens[1]
+
+        pump = PyPump(client=client, verifier_callback=self.simple_verifier)
 
         return pump
 
@@ -93,6 +98,20 @@ class PumpHandler(SocialHandler):
 
         if not self.pump:
             return []
+
+        me = self.pump.Person("{username}@{server}".format(
+            username=self.pump.client.nickname,
+            server=self.pump.client.server,
+        ))
+
+        print(me)
+        print(me.links)
+
+        print(self.pump.me)
+        print(self.me)
+        print(self.me.summary)
+        print(self.me.links)
+        print(self.me.outbox)
 
         for activity in self.me.outbox.major[:20]:
             pump_obj    = activity.obj
