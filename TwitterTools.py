@@ -47,7 +47,7 @@ class TwitterHandler(SocialHandler):
             # download the HTML page that holds the image
             photo_link_url = URLShortener.ExpandShortURL(photo_link)
             process = subprocess.Popen(["curl -m 120 --connect-timeout 60 %s"%(photo_link_url)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            curl_text = process.communicate()[0]
+            curl_text = process.communicate()[0].decode()
             photo_match = re.compile('content="(https://[a-zA-Z]+\.twimg\.com.*?:large)"').findall(curl_text)
             if len(photo_match)>0:
                 filename_match = re.search('.*/(.*):large', photo_match[0], re.DOTALL)
@@ -71,7 +71,7 @@ class TwitterHandler(SocialHandler):
 
         self.msg(0, self.texthandler("Gathering messages."))
 
-        configstring = ""
+        configstring = str("")
         if self.configfile != "":
             configstring = '-P %s' % (self.configfile)
             pass
@@ -80,26 +80,25 @@ class TwitterHandler(SocialHandler):
         whoami = self.texthandler(subprocess.check_output('t whoami %s | grep "Screen name"' % (configstring), \
                                         stderr=subprocess.STDOUT, \
                                         shell=True))
-        matches = re.search('.*Screen name.*?@(.*)$', whoami, re.DOTALL)
-        username = self.texthandler("");
+        matches = re.search(b'.*Screen name.*?@(.*)$', whoami, re.DOTALL)
+        username = str("")
         if matches:
-            username = self.texthandler(matches.group(1))
-            username = username.rstrip('\n')
+            username = matches.group(1).decode()
+            username = username.rstrip("\n")
         else:
             return []
 
 
-
         #text = self.texthandler(commands.getoutput('t timeline %s -c @%s' % (configstring,username)))
-        text = self.texthandler(subprocess.check_output('t timeline %s -c @%s' % (configstring,username), \
-                                        stderr=subprocess.STDOUT, \
-                                        shell=True))
-
+        command_string = "t timeline %s -c @%s" % (configstring, username)
+        text = self.texthandler(subprocess.check_output(command_string, \
+                                stderr=subprocess.STDOUT, \
+                                shell=True))
         message = Message()
 
-        line = self.texthandler("")
+        line = ""
 
-        for line in text.split('\n'):
+        for line in text.decode().split('\n'):
             # 437607107773206528,2014-02-23 15:17:19 +0000,drsekula,message text
             matches = re.search('(.*?),(.*?),(.*?),(.*)', line, re.DOTALL)
 
@@ -110,7 +109,13 @@ class TwitterHandler(SocialHandler):
                     continue
 
 
-                message_text = self.texthandler(matches.group(4))
+                try:
+                    message_text = matches.group(4).decode()
+                except AttributeError:
+                    message_text = matches.group(4)
+                except TypeError:
+                    message_text = matches.group(4)
+                    pass
 
                 # t does funny things with quotes in messages that are not RTs.
                 message_text = message_text.lstrip("\"")
@@ -120,14 +125,18 @@ class TwitterHandler(SocialHandler):
                 message = Message()
                 try:
                     message.id = int(matches.group(1))
-                except ValueError:
+                except TypeError:
                     print("ERROR: unable to get the message ID. Bailing.")
                     continue
 
                 message_time_text = datetime.datetime.strptime(matches.group(2), "%Y-%m-%d %H:%M:%S +0000")
                 message.date = calendar.timegm(message_time_text.timetuple())
                 message.source = "Twitter"
-                message.SetContent(self.TextToHtml(message_text))
+                try:
+                    message.SetContent(self.TextToHtml(message_text).decode())
+                except AttributeError:
+                    message.SetContent(self.TextToHtml(message_text))
+                    pass
                 message.author = username
                 message.reply = True if (message_text[0] == "@") else False
                 message.direct = True if (message_text[0] == "@") else False
@@ -172,7 +181,7 @@ class TwitterHandler(SocialHandler):
 
             else:
                 # this might just be another line in a multi-line message in Twitter
-                message.content += self.texthandler("\n") + line;
+                message.content += "\n" + line;
                 pass
 
             pass

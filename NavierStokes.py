@@ -532,6 +532,7 @@ for sinkname in sources_and_sinks:
 
         if type(sources_and_sinks[sinkname]) == TwitterTools.TwitterHandler or \
            type(sources_and_sinks[sinkname]) == GNUSocialTools.GNUSocialHandler:
+            print(type(message.content))
             message.content = message.content.lstrip(' ')
             message.content = message.content.rstrip('\n')
 

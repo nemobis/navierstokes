@@ -7,13 +7,21 @@ import os
 import subprocess
 import logging
 import unicodedata
-#import commands
 import re
 import hashlib
 import copy
 import URLShortener
 import chardet
-#from sets import Set
+import encodings
+import pkgutil
+
+
+def all_encodings():
+    modnames = set(
+        [modname for importer, modname, ispkg in pkgutil.walk_packages(
+            path=[os.path.dirname(encodings.__file__)], prefix='')])
+    aliases = set(encodings.aliases.aliases.values())
+    return modnames.union(aliases)
 
 
 class SocialHandler(object):
@@ -79,7 +87,7 @@ class SocialHandler(object):
         return
 
 
-    def texthandler(self, text=""):
+    def texthandler(self, text=str("")):
         #if not isinstance(text, unicode):
         #    return text.decode('utf8', errors='ignore')
         return text
@@ -209,7 +217,7 @@ class SocialHandler(object):
         #txt = commands.getoutput('/usr/bin/lynx --dump -width 2048 -nolist /tmp/%d_msg.html' % (pid))
         txt = subprocess.check_output('/usr/bin/lynx --dump -width 2048 -nolist /tmp/%d_msg.html' % (pid), \
                                         stderr=subprocess.STDOUT, \
-                                        shell=True)
+                                        shell=True).decode()
         os.system('rm -f /tmp/%d_msg.html' % (pid))
 
         return txt
@@ -224,26 +232,33 @@ class SocialHandler(object):
         text_file = open("/tmp/txt2html_%d.txt" % (pid), "w")
 
         #text_file.write(msg.encode('utf8'))
-        text_file.write(self.texthandler(msg).encode('utf8'))
+        text_file.write(msg)
 
         text_file.close();
 
         # Convert using tool
         html_message = ""
+        html_message_tmp = bytes()
+
         try:
-            #html_message = unicode(subprocess.check_output(["txt2html", "--infile", "/tmp/txt2html_%d.txt" % (pid)]))
-            html_message = subprocess.check_output(["txt2html", "--infile", "/tmp/txt2html_%d.txt" % (pid)])
+            html_message_tmp = subprocess.check_output(["txt2html", "--infile", "/tmp/txt2html_%d.txt" % (pid)])
         except subprocess.CalledProcessError:
             print(self.texthandler("There was a problem trying to call the txt2html program - make sure it is installed correctly."))
             sys.exit(-1)
             pass
 
+        for enc in all_encodings():
+            try:
+                html_message = html_message_tmp.decode(encoding=enc)
+            except Exception:
+                continue
+            pass
+
+
         # excerpt the content of the <body> tags
 
-        html_message = self.texthandler(html_message)
-
-        body_begin = html_message.find(u'<body>') + 6
-        body_end   = html_message.find(u'</body>')
+        body_begin = html_message.find('<body>') + 6
+        body_end   = html_message.find('</body>')
 
         html_message = html_message[body_begin:body_end]
 

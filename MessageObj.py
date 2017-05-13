@@ -50,5 +50,11 @@ REPOST?: %(repost)d\n" % {'author': self.author, 'datetime': ((datetime.datetime
     def Print(self):
         print(self.Printable())
 
-    def SetContent(self, text=""):
-        self.content = text
+    def SetContent(self, text):
+        # Try to handle, intelligently, the crazy mix of strings and bytes
+        # that Python 3 might toss our way...
+        if type(text) is bytes:
+            self.content = text.decode(encoding="utf-8")
+        else:
+            self.content = text
+        pass

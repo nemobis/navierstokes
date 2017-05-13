@@ -125,7 +125,9 @@ class GNUSocialHandler(SocialHandler):
 
         pid = os.getpid()
 
-        xml_file = codecs.open('/tmp/%d_dents.xml' % (pid),'w',encoding='utf-8')
+        #xml_file = codecs.open('/tmp/%d_dents.xml' % (pid),'w',encoding='utf-8')
+        #xml_file.write(self.texthandler(xml_file_contents))
+        xml_file = open('/tmp/%d_dents.xml' % (pid),'bw')
         xml_file.write(self.texthandler(xml_file_contents))
         xml_file.close()
 
