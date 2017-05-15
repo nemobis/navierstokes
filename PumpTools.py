@@ -34,12 +34,12 @@ import requests
 from requests_oauthlib import OAuth1
 
 class PumpHandler(SocialHandler):
-    
+
     def __init__(self,webfinger,credentials,tokens,sharelevel="Public"):
         SocialHandler.__init__(self)
         self.webfinger = webfinger
         self.credentials = [s.strip() for s in credentials] #get rid of any stray spaces in the credentials/tokens
-        self.tokens = [s.strip() for s in tokens]        
+        self.tokens = [s.strip() for s in tokens]
         self.sharelevel = sharelevel
 
         self.pump = None
@@ -58,7 +58,7 @@ class PumpHandler(SocialHandler):
             self.pump = None
             self.me = None
             pass
-            
+
         pass
 
     def simple_verifier(url):
@@ -73,14 +73,14 @@ class PumpHandler(SocialHandler):
             key=client_credentials[0],
             secret=client_credentials[1],
             )
-        
+
         pump = PyPump(
             client=client,
             token=client_tokens[0], # the token
             secret=client_tokens[1], # the token secret
             verifier_callback=self.simple_verifier
             )
-        
+
         return pump
 
 
@@ -121,12 +121,12 @@ class PumpHandler(SocialHandler):
                     pass
             except AttributeError:
                 continue
-                
+
 
             message.SetContent(text)
 
             message.link = pump_obj_url
-            
+
             try:
                 if pump_obj.deleted:
                     continue
@@ -137,7 +137,10 @@ class PumpHandler(SocialHandler):
             # Determine if this message was directed to someone on Pump.io and thus
             # isn't intended for sharing outside the network.
             to_list = getattr(activity, "to", [])
+            print("Length of the To: list: %d" % (len(to_list)))
+
             skip_this_message = True
+            print("Author of post: %s" %(pump_obj.author.display_name))
             if len(to_list) > 0:
                 # was "Public" among the "To:" recipients? Then we can go on; otherwise,
                 # skip this message
@@ -156,7 +159,7 @@ class PumpHandler(SocialHandler):
                             skip_this_message = False
 
                         pass
-                    pass 
+                    pass
 
                 if is_direct:
                     message.direct = 1
@@ -165,12 +168,19 @@ class PumpHandler(SocialHandler):
                     pass
 
                 pass
+            else:
+                is_public = True
+                is_direct = False
+                pass
 
 
             cc_list = getattr(activity, "cc", [])
+            print("Length of the CC: list: %d" % (len(cc_list)))
+
             if len(cc_list) > 0:
                 for person in cc_list:
                     if isinstance(person, Collection):
+                        print ("CC collection: person ID = %s" % (person.id))
                         if person.id.find("followers") != -1:
                             skip_this_message = False
                             pass
@@ -180,7 +190,7 @@ class PumpHandler(SocialHandler):
 
             if skip_this_message:
                 continue;
-                
+
             if isinstance( pump_obj, Image):
                 img_url = pump_obj.original.url
 
@@ -192,20 +202,20 @@ class PumpHandler(SocialHandler):
                 endpoint = endpoint.replace('_thumb','')
                 local_img_name = endpoint.split('/')[-1]
                 client = self.pump.setup_oauth_client(endpoint)
-                params = {} 
+                params = {}
                 headers = {"Content-Type": "application/json"}
                 request = {
                     "params": params,
                     "auth": client,
                     "headers": headers,
                     }
-                
+
                 image_raw = self.pump._requester(requests.get, endpoint, raw=False, **request)
-                
+
                 fout = open("/tmp/{0}".format(local_img_name), "w")
                 fout.write(image_raw.content)
                 fout.close()
-                
+
                 #message.content = unicodedata.normalize('NFKD', pump_obj.display_name).encode('ascii','ignore')
                 #print ".display_name: %s" % (pump_obj.display_name)
                 #print ".summary: %s" % (pump_obj.summary)
@@ -228,7 +238,7 @@ class PumpHandler(SocialHandler):
 
             message.author = pump_obj.author.display_name
             message.author_url = pump_obj.author.url
-            
+
 
             #if str(message.author) != str(self.me):
             if message.author != self.me.display_name:
@@ -248,7 +258,7 @@ class PumpHandler(SocialHandler):
             for message in self.messages:
                 print message.Printable()
                 pass
-            
+
         return self.messages
 
 
