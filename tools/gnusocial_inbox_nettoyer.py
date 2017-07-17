@@ -19,23 +19,23 @@ import re
 import codecs
 import commands
 
-def texthandler(self, text=unicode("","utf8")):
+def texthandler(text=unicode("","utf8")):
     if not isinstance(text, unicode):
         return text.decode('utf8', errors='ignore')
     return text
 
 # functions for handling XML
-def get_a_stream(self,name="out.xml"):
+def get_a_stream(name="out.xml"):
     return xml.dom.minidom.parse(name)
 
-def find_status_elements(self,doc):
+def find_status_elements(doc):
     list_of_status_elements = []
     #print doc.toprettyxml()
     list_of_status_elements = doc.getElementsByTagName("status")
     #print list_of_status_elements
     return list_of_status_elements
 
-def find_element_of_status(self,status,element_name):
+def find_element_of_status(status,element_name):
     element_content = ""
     for e in status.childNodes:
         if e.ELEMENT_NODE and e.localName == element_name:
@@ -46,6 +46,20 @@ def find_element_of_status(self,status,element_name):
         pass
     return element_content
 
+def status_author_name(status):
+    name = ""
+    for e in status.childNodes:
+        if e.ELEMENT_NODE and e.localName == "user":
+            for u in e.childNodes:
+                if u.ELEMENT_NODE and u.localName == "screen_name":
+                    for t in u.childNodes:
+                        name = t.data.encode('utf-8').strip()
+                        break
+                    pass
+                pass
+            pass
+        pass
+    return name
 
 
 parser = argparse.ArgumentParser(description='Cleanup a messy pump.io inbox.')
@@ -88,11 +102,13 @@ except:
 
 pid = os.getpid()
 
-xml_file = codecs.open('/tmp/%d_dents.xml' % (pid),'w',encoding='utf-8')
+dent_file = '/tmp/%d_dents.xml' % (pid)
+
+xml_file = codecs.open(dent_file,'w',encoding='utf-8')
 xml_file.write(texthandler(xml_file_contents))
 xml_file.close()
 
-document = get_a_stream("/tmp/%d_dents.xml" % (pid))
+document = get_a_stream(dent_file)
 dents_xml = find_status_elements(document)
 
 failed_deleted = []
@@ -140,7 +156,7 @@ for dent_xml in dents_xml:
             pass
         if do_delete:
             try:
-                results = commands.getoutput('curl -m 120 --connect-timeout 60 -s -u \'%s:%s\' https://%s/api/statuses/destroy/%s' % (username,password,server,dent_id))
+                results = commands.getoutput('curl -d -m 120 --connect-timeout 60 -s -u \'%s:%s\' https://%s/api/statuses/destroy/%s.json' % (username,password,server,dent_id))
                 print(results)
             except:
                 print("There was a GNU Social error. Unable to delete message %s" % activity.id)
